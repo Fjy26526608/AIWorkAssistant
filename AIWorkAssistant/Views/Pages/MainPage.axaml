@@ -1,0 +1,108 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:AIWorkAssistant.ViewModels"
+             xmlns:ctrl="using:AIWorkAssistant.Views.Controls"
+             x:Class="AIWorkAssistant.Views.Pages.MainPage"
+             x:DataType="vm:MainViewModel">
+
+    <UserControl.Resources>
+        <ctrl:BoolToAlignmentConverter x:Key="AlignConverter"/>
+        <ctrl:BoolToBubbleColorConverter x:Key="BubbleColorConverter"/>
+    </UserControl.Resources>
+
+    <Grid ColumnDefinitions="220,*">
+        <!-- 左侧导航 -->
+        <Border Grid.Column="0" Background="#F5F5F5" Padding="12">
+            <DockPanel>
+                <StackPanel DockPanel.Dock="Top" Spacing="8" Margin="0,0,0,16">
+                    <TextBlock Text="AI Work Assistant" FontWeight="Bold" FontSize="16"/>
+                    <TextBlock Text="{Binding DisplayName}" Foreground="Gray"/>
+                </StackPanel>
+
+                <StackPanel DockPanel.Dock="Bottom" Spacing="4">
+                    <Button Content="⚙️ 设置" HorizontalAlignment="Stretch"
+                            Command="{Binding GoToSettingsCommand}"
+                            IsVisible="{Binding IsAdmin}"/>
+                    <Button Content="退出登录" HorizontalAlignment="Stretch"
+                            Command="{Binding LogoutCommand}"/>
+                </StackPanel>
+
+                <!-- 助手列表 -->
+                <ScrollViewer>
+                    <ItemsControl ItemsSource="{Binding Assistants}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Button HorizontalAlignment="Stretch" Margin="0,2"
+                                        Command="{Binding $parent[ItemsControl].((vm:MainViewModel)DataContext).SelectAssistantCommand}"
+                                        CommandParameter="{Binding}">
+                                    <StackPanel Orientation="Horizontal" Spacing="8">
+                                        <TextBlock Text="{Binding Icon}" FontSize="20"/>
+                                        <StackPanel>
+                                            <TextBlock Text="{Binding Name}" FontWeight="SemiBold"/>
+                                            <TextBlock Text="{Binding Description}" FontSize="11"
+                                                       Foreground="Gray" MaxWidth="140"
+                                                       TextTrimming="CharacterEllipsis"/>
+                                        </StackPanel>
+                                    </StackPanel>
+                                </Button>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </ScrollViewer>
+            </DockPanel>
+        </Border>
+
+        <!-- 右侧内容区 -->
+        <Grid Grid.Column="1">
+            <!-- 欢迎页（没选助手时） -->
+            <TextBlock Text="👈 请从左侧选择一个 AI 助手" FontSize="18" Foreground="Gray"
+                       HorizontalAlignment="Center" VerticalAlignment="Center"
+                       IsVisible="{Binding !SelectedAssistant, Converter={x:Static ObjectConverters.IsNull}}"/>
+
+            <!-- 聊天页 -->
+            <DockPanel IsVisible="{Binding SelectedAssistant, Converter={x:Static ObjectConverters.IsNotNull}}">
+                <!-- 顶部栏 -->
+                <Border DockPanel.Dock="Top" Padding="16,8" Background="#FAFAFA"
+                        BorderBrush="LightGray" BorderThickness="0,0,0,1">
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <Button Content="←" Command="{Binding BackToListCommand}" Width="32"/>
+                        <TextBlock Text="{Binding SelectedAssistant.Icon}" FontSize="20"
+                                   VerticalAlignment="Center"/>
+                        <TextBlock Text="{Binding SelectedAssistant.Name}" FontWeight="Bold"
+                                   FontSize="16" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </Border>
+
+                <!-- 底部输入 -->
+                <Border DockPanel.Dock="Bottom" Padding="12" Background="#FAFAFA"
+                        BorderBrush="LightGray" BorderThickness="0,1,0,0">
+                    <Grid ColumnDefinitions="*,Auto">
+                        <TextBox Grid.Column="0" Text="{Binding ChatInput}"
+                                 Watermark="输入消息..." Margin="0,0,8,0"/>
+                        <Button Grid.Column="1" Content="发送" Width="80"
+                                Command="{Binding SendMessageCommand}"
+                                IsEnabled="{Binding !IsSending}"/>
+                    </Grid>
+                </Border>
+
+                <!-- 消息列表 -->
+                <ScrollViewer>
+                    <ItemsControl ItemsSource="{Binding Messages}" Margin="16">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Border Margin="0,4" Padding="12,8" CornerRadius="8"
+                                        MaxWidth="600"
+                                        HorizontalAlignment="{Binding IsUser, Converter={StaticResource AlignConverter}}">
+                                    <Border.Background>
+                                        <SolidColorBrush Color="{Binding IsUser, Converter={StaticResource BubbleColorConverter}}"/>
+                                    </Border.Background>
+                                    <TextBlock Text="{Binding Content}" TextWrapping="Wrap"/>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </ScrollViewer>
+            </DockPanel>
+        </Grid>
+    </Grid>
+</UserControl>
