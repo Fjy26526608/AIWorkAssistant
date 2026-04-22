@@ -7,7 +7,6 @@ public class AppDbContext : DbContext
 {
     public DbSet<User> Users => Set<User>();
     public DbSet<AiAssistant> Assistants => Set<AiAssistant>();
-    public DbSet<UserAssistant> UserAssistants => Set<UserAssistant>();
     public DbSet<ChatMessage> ChatMessages => Set<ChatMessage>();
     public DbSet<AppSetting> AppSettings => Set<AppSetting>();
 
@@ -27,21 +26,6 @@ public class AppDbContext : DbContext
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
-        // UserAssistant 多对多
-        modelBuilder.Entity<UserAssistant>()
-            .HasKey(ua => new { ua.UserId, ua.AssistantId });
-
-        modelBuilder.Entity<UserAssistant>()
-            .HasOne(ua => ua.User)
-            .WithMany(u => u.UserAssistants)
-            .HasForeignKey(ua => ua.UserId);
-
-        modelBuilder.Entity<UserAssistant>()
-            .HasOne(ua => ua.Assistant)
-            .WithMany(a => a.UserAssistants)
-            .HasForeignKey(ua => ua.AssistantId);
-
-        // AppSetting 主键
         modelBuilder.Entity<AppSetting>()
             .HasKey(s => s.Key);
 

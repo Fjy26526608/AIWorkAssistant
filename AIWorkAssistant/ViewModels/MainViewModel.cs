@@ -15,10 +15,7 @@ public partial class MainViewModel : ObservableObject
     [ObservableProperty] private bool _isAdmin;
     [ObservableProperty] private AiAssistant? _selectedAssistant;
 
-    // 助手列表
     public ObservableCollection<AiAssistant> Assistants { get; } = new();
-
-    // 聊天消息
     public ObservableCollection<ChatMessageVm> Messages { get; } = new();
 
     [ObservableProperty] private string _chatInput = string.Empty;
@@ -40,23 +37,7 @@ public partial class MainViewModel : ObservableObject
     {
         Assistants.Clear();
         await using var db = new AppDbContext();
-        var user = ServiceLocator.Auth.CurrentUser;
-        if (user == null) return;
-
-        List<AiAssistant> list;
-        if (user.Role == "Admin")
-        {
-            list = await db.Assistants.Where(a => a.IsEnabled).ToListAsync();
-        }
-        else
-        {
-            list = await db.UserAssistants
-                .Where(ua => ua.UserId == user.Id)
-                .Select(ua => ua.Assistant)
-                .Where(a => a.IsEnabled)
-                .ToListAsync();
-        }
-
+        var list = await db.Assistants.Where(a => a.IsEnabled).ToListAsync();
         foreach (var a in list)
             Assistants.Add(a);
     }
@@ -88,7 +69,6 @@ public partial class MainViewModel : ObservableObject
 
             Messages.Add(new ChatMessageVm { Role = "assistant", Content = reply });
 
-            // 保存到数据库
             await using var db = new AppDbContext();
             var user = ServiceLocator.Auth.CurrentUser!;
             db.ChatMessages.Add(new ChatMessage

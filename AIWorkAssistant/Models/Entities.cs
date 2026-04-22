@@ -12,8 +12,6 @@ public class User
     public string Role { get; set; } = "User"; // Admin / User
     public bool IsEnabled { get; set; } = true;
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
-
-    public List<UserAssistant> UserAssistants { get; set; } = new();
 }
 
 /// <summary>
@@ -28,19 +26,6 @@ public class AiAssistant
     public string SystemPrompt { get; set; } = string.Empty;
     public bool IsEnabled { get; set; } = true;
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
-
-    public List<UserAssistant> UserAssistants { get; set; } = new();
-}
-
-/// <summary>
-/// 用户-助手关联（控制哪些用户能用哪些助手）
-/// </summary>
-public class UserAssistant
-{
-    public int UserId { get; set; }
-    public User User { get; set; } = null!;
-    public int AssistantId { get; set; }
-    public AiAssistant Assistant { get; set; } = null!;
 }
 
 /// <summary>
