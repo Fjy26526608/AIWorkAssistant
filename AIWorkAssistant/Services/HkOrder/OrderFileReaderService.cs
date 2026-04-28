@@ -47,6 +47,7 @@ public static class OrderFileReaderService
 
         var sb = new StringBuilder();
         var formatter = new DataFormatter(System.Globalization.CultureInfo.GetCultureInfo("zh-CN"));
+        var evaluator = WorkbookFactory.CreateFormulaEvaluator(workbook);
 
         for (var sheetIndex = 0; sheetIndex < workbook.NumberOfSheets; sheetIndex++)
         {
@@ -63,7 +64,7 @@ public static class OrderFileReaderService
                 for (var cellIndex = row.FirstCellNum < 0 ? 0 : row.FirstCellNum; cellIndex < row.LastCellNum; cellIndex++)
                 {
                     var cell = row.GetCell(cellIndex);
-                    var value = cell == null ? string.Empty : formatter.FormatCellValue(cell).Trim();
+                    var value = FormatCellValue(cell, formatter, evaluator);
                     cells.Add(value.Replace("\r", " ").Replace("\n", " "));
                 }
 
@@ -77,5 +78,24 @@ public static class OrderFileReaderService
         }
 
         return sb.ToString();
+    }
+
+    private static string FormatCellValue(ICell? cell, DataFormatter formatter, IFormulaEvaluator evaluator)
+    {
+        if (cell == null)
+        {
+            return string.Empty;
+        }
+
+        try
+        {
+            return formatter.FormatCellValue(cell, evaluator).Trim();
+        }
+        catch
+        {
+            // WPS templates may contain unsupported display/image formulas such as _xlfn.DISPIMG.
+            // Keep the raw formula text instead of failing the whole order read.
+            return formatter.FormatCellValue(cell).Trim();
+        }
     }
 }
