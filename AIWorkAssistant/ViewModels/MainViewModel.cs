@@ -111,6 +111,13 @@ public partial class MainViewModel : ObservableObject
     }
 
     [RelayCommand]
+    private void GoToOfficeOrderUpload()
+    {
+        SelectedAssistant = null;
+        CurrentPage = "OfficeOrderUpload";
+    }
+
+    [RelayCommand]
     private void Logout()
     {
         ServiceLocator.Auth.Logout();

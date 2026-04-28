@@ -28,10 +28,10 @@ public partial class MainWindow : Window
         {
             db.Assistants.Add(new AiAssistant
             {
-                Name = "订单自动上传",
-                Description = "监测文件夹，自动解析订单并上传到管理系统",
-                Icon = "📋",
-                SystemPrompt = "order_upload_agent",
+                Name = "通用办公助手",
+                Description = "日常办公问答、文本润色和资料整理",
+                Icon = "🤖",
+                SystemPrompt = "你是一个专业、简洁的企业办公 AI 助手。",
                 IsEnabled = true
             });
             db.SaveChanges();
@@ -56,14 +56,8 @@ public partial class MainWindow : Window
             {
                 if (vm.CurrentPage == "Settings")
                     ShowSettings(vm);
-            }
-
-            if (e.PropertyName == nameof(MainViewModel.SelectedAssistant))
-            {
-                if (vm.SelectedAssistant?.SystemPrompt == "order_upload_agent")
-                {
-                    ShowOrderAgent(vm);
-                }
+                else if (vm.CurrentPage == "OfficeOrderUpload")
+                    ShowOfficeOrderUpload(vm);
             }
         };
 
@@ -71,16 +65,16 @@ public partial class MainWindow : Window
         _ = vm.LoadAssistantsAsync();
     }
 
-    private void ShowOrderAgent(MainViewModel mainVm)
+    private void ShowOfficeOrderUpload(MainViewModel mainVm)
     {
-        var vm = new OrderAgentViewModel();
-        var page = new OrderAgentPage { DataContext = vm };
+        var vm = new OfficeOrderUploadViewModel();
+        var page = new OfficeOrderUploadPage { DataContext = vm };
 
         var container = new DockPanel();
-        var backBtn = new Button { Content = "← 返回助手列表", Margin = new Avalonia.Thickness(12, 8) };
+        var backBtn = new Button { Content = "← 返回主页", Margin = new Avalonia.Thickness(12, 8) };
         backBtn.Click += (_, _) =>
         {
-            mainVm.BackToListCommand.Execute(null);
+            mainVm.CurrentPage = "AssistantList";
             ShowMain();
         };
         DockPanel.SetDock(backBtn, Avalonia.Controls.Dock.Top);
@@ -88,7 +82,7 @@ public partial class MainWindow : Window
         container.Children.Add(page);
 
         PageHost.Content = container;
-        _ = vm.LoadConfigAsync();
+        _ = vm.LoadAsync();
     }
 
     private void ShowSettings(MainViewModel mainVm)

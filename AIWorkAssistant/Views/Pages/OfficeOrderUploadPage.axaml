@@ -1,0 +1,117 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:AIWorkAssistant.ViewModels"
+             xmlns:ctrl="using:AIWorkAssistant.Views.Controls"
+             x:Class="AIWorkAssistant.Views.Pages.OfficeOrderUploadPage"
+             x:DataType="vm:OfficeOrderUploadViewModel">
+
+    <UserControl.Resources>
+        <ctrl:PathToBitmapConverter x:Key="PathToBitmapConverter"/>
+        <ctrl:BoolToErrorColorConverter x:Key="ErrorColorConverter"/>
+    </UserControl.Resources>
+
+    <Grid RowDefinitions="Auto,*,Auto" Margin="16">
+        <TextBlock Grid.Row="0" Text="📋 办公 / 订单自动上传" FontSize="22" FontWeight="Bold" Margin="0,0,0,12"/>
+
+        <Grid Grid.Row="1" ColumnDefinitions="420,*" ColumnSpacing="16">
+            <ScrollViewer Grid.Column="0">
+                <StackPanel Spacing="12">
+                    <Border BorderBrush="LightGray" BorderThickness="1" CornerRadius="8" Padding="12">
+                        <StackPanel Spacing="8">
+                            <TextBlock Text="订单文件" FontWeight="Bold"/>
+                            <TextBox Text="{Binding OrderFolderPath}" Watermark="订单 .doc 文件所在文件夹"/>
+                        </StackPanel>
+                    </Border>
+
+                    <Border BorderBrush="LightGray" BorderThickness="1" CornerRadius="8" Padding="12">
+                        <StackPanel Spacing="8">
+                            <TextBlock Text="订单系统" FontWeight="Bold"/>
+                            <TextBox Text="{Binding TargetUrl}" Watermark="登录网址"/>
+                            <TextBox Text="{Binding OrderPageUrl}" Watermark="新增订单页面地址"/>
+                            <Grid ColumnDefinitions="*,*" ColumnSpacing="8">
+                                <TextBox Grid.Column="0" Text="{Binding Username}" Watermark="账号"/>
+                                <TextBox Grid.Column="1" Text="{Binding Password}" PasswordChar="●" Watermark="密码"/>
+                            </Grid>
+                            <Grid ColumnDefinitions="*,*" ColumnSpacing="8">
+                                <TextBox Grid.Column="0" Text="{Binding SaleType}" Watermark="销售类型，如 煤矿"/>
+                                <TextBox Grid.Column="1" Text="{Binding BrowserType}" Watermark="Chromium/Firefox/WebKit"/>
+                            </Grid>
+                            <Grid ColumnDefinitions="*,*" ColumnSpacing="8">
+                                <TextBox Grid.Column="0" Text="{Binding SlowMo}" Watermark="浏览器慢动作(ms)"/>
+                                <TextBox Grid.Column="1" Text="{Binding DefaultTimeout}" Watermark="默认超时(ms)"/>
+                            </Grid>
+                            <CheckBox Content="无头模式" IsChecked="{Binding Headless}"/>
+                        </StackPanel>
+                    </Border>
+
+                    <Border BorderBrush="LightGray" BorderThickness="1" CornerRadius="8" Padding="12">
+                        <StackPanel Spacing="8">
+                            <TextBlock Text="AI 解析" FontWeight="Bold"/>
+                            <TextBox Text="{Binding ApiBaseUrl}" Watermark="API Base URL"/>
+                            <TextBox Text="{Binding ApiKey}" PasswordChar="●" Watermark="API Key"/>
+                            <TextBox Text="{Binding ModelName}" Watermark="模型名称"/>
+                        </StackPanel>
+                    </Border>
+
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <Button Content="保存配置" Command="{Binding SaveSettingsCommand}" Width="100"/>
+                        <Button Content="开始处理" Command="{Binding StartCommand}" IsEnabled="{Binding !IsRunning}" Width="100" Classes="accent"/>
+                        <Button Content="停止" Command="{Binding StopCommand}" IsEnabled="{Binding IsRunning}" Width="80"/>
+                    </StackPanel>
+
+                    <ProgressBar Minimum="0" Maximum="100" Value="{Binding ProgressValue}" IsVisible="{Binding IsRunning}"/>
+                    <TextBlock Text="{Binding ProgressText}" Foreground="Gray"/>
+                    <TextBlock Text="{Binding StatusMessage}" TextWrapping="Wrap"/>
+                </StackPanel>
+            </ScrollViewer>
+
+            <Grid Grid.Column="1" RowDefinitions="Auto,*,Auto" RowSpacing="8">
+                <Border Grid.Row="0" BorderBrush="Orange" BorderThickness="2" CornerRadius="8" Padding="12"
+                        Background="#FFF8E1" IsVisible="{Binding IsCaptchaVisible}">
+                    <StackPanel Spacing="8">
+                        <TextBlock Text="🔐 请输入验证码" FontWeight="Bold" Foreground="OrangeRed"/>
+                        <StackPanel Orientation="Horizontal" Spacing="12" VerticalAlignment="Center">
+                            <Image Width="160" Height="56" Stretch="Uniform" Source="{Binding CaptchaImagePath, Converter={StaticResource PathToBitmapConverter}}"/>
+                            <TextBox Width="140" Text="{Binding CaptchaInput}" Watermark="验证码"/>
+                            <Button Content="确认" Command="{Binding SubmitCaptchaCommand}" Width="72"/>
+                            <Button Content="取消" Command="{Binding CancelCaptchaCommand}" Width="72"/>
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
+
+                <Border Grid.Row="1" BorderBrush="LightGray" BorderThickness="1" CornerRadius="8" Padding="8">
+                    <DockPanel>
+                        <TextBlock DockPanel.Dock="Top" Text="运行日志" FontWeight="Bold" Margin="0,0,0,6"/>
+                        <ListBox ItemsSource="{Binding Logs}" ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                            <ListBox.ItemTemplate>
+                                <DataTemplate>
+                                    <TextBlock Text="{Binding Display}" TextWrapping="Wrap"
+                                               Foreground="{Binding IsError, Converter={StaticResource ErrorColorConverter}}"/>
+                                </DataTemplate>
+                            </ListBox.ItemTemplate>
+                        </ListBox>
+                    </DockPanel>
+                </Border>
+
+                <Border Grid.Row="2" BorderBrush="#4CAF50" BorderThickness="2" CornerRadius="8" Padding="12"
+                        Background="#F1FFF1" IsVisible="{Binding IsConfirmVisible}">
+                    <Grid ColumnDefinitions="200,*,Auto" ColumnSpacing="12">
+                        <Image Grid.Column="0" Height="130" Stretch="Uniform" Source="{Binding PreviewImagePath, Converter={StaticResource PathToBitmapConverter}}"/>
+                        <StackPanel Grid.Column="1" Spacing="6" VerticalAlignment="Center">
+                            <TextBlock Text="请检查浏览器中的订单内容" FontWeight="Bold"/>
+                            <TextBlock Text="确认无误后点击提交；不提交则跳过当前订单。" Foreground="Gray" TextWrapping="Wrap"/>
+                            <TextBlock Text="{Binding PreviewImagePath}" FontSize="11" Foreground="Gray" TextWrapping="Wrap"/>
+                        </StackPanel>
+                        <StackPanel Grid.Column="2" Spacing="8" VerticalAlignment="Center">
+                            <Button Content="确认提交" Command="{Binding ConfirmSubmitCommand}" Width="100" Classes="accent"/>
+                            <Button Content="跳过" Command="{Binding SkipSubmitCommand}" Width="100"/>
+                        </StackPanel>
+                    </Grid>
+                </Border>
+            </Grid>
+        </Grid>
+
+        <TextBlock Grid.Row="2" Text="提示：处理过程中会输出 .doc.txt、.ai.raw.json、.ai.cleaned.json、.ai.json，方便核查 AI 解析结果。"
+                   Foreground="Gray" Margin="0,10,0,0"/>
+    </Grid>
+</UserControl>
