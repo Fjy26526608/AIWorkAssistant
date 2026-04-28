@@ -4,6 +4,10 @@
              x:Class="AIWorkAssistant.Views.Pages.LoginPage"
              x:DataType="vm:LoginViewModel">
 
+    <UserControl.KeyBindings>
+        <KeyBinding Gesture="Enter" Command="{Binding LoginCommand}"/>
+    </UserControl.KeyBindings>
+
     <Border HorizontalAlignment="Center" VerticalAlignment="Center"
             Width="360" Padding="32" CornerRadius="8"
             BorderBrush="LightGray" BorderThickness="1"

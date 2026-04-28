@@ -57,7 +57,23 @@ public sealed class HkOrderWorkflowService : IAsyncDisposable
 
             _log("  AI 解析中...");
             var ai = new AiService(_settings.ApiKey, _settings.ApiBaseUrl, _settings.ModelName);
-            var parseResult = await ai.ParseOrderAsync(docText, ct, _log);
+            AiParseResult parseResult;
+            try
+            {
+                parseResult = await ai.ParseOrderAsync(docText, ct, _log);
+            }
+            catch (OrderItemCatalogMatchException ex)
+            {
+                _log($"[物品匹配错误] {fileName}");
+                foreach (var line in ex.Message.Split(Environment.NewLine))
+                {
+                    _log(line);
+                }
+
+                _log("已停止解析，未继续上传。");
+                return;
+            }
+
             var orderData = parseResult.Data;
 
             await WriteParseArtifactsAsync(file, orderData, parseResult, ct);
@@ -71,7 +87,7 @@ public sealed class HkOrderWorkflowService : IAsyncDisposable
         _log($"浏览器已启动 [{_settings.BrowserType}]，已导航至 {_settings.TargetUrl}");
 
         var agent = new BrowserAgent(_playwright.Page!, _settings, _log);
-        await agent.LoginAsync(captchaPath => RequestCaptchaInput(captchaPath, ct).GetAwaiter().GetResult());
+        await agent.LoginAsync(captchaPath => RequestCaptchaInput(captchaPath, ct));
 
         for (var i = 0; i < parsedOrders.Count; i++)
         {

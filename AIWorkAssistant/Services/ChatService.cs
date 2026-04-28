@@ -17,7 +17,7 @@ public class ChatService
 
     public ChatService()
     {
-        _httpClient = new HttpClient { Timeout = TimeSpan.FromMinutes(3) };
+        _httpClient = new HttpClient { Timeout = TimeSpan.FromMinutes(10) };
     }
 
     public void Configure(string baseUrl, string apiKey, string model, int maxTokens = 8192)
@@ -36,6 +36,7 @@ public class ChatService
         {
             ["model"] = _model,
             ["max_tokens"] = _maxTokens,
+            ["stream"] = false,
             ["messages"] = msgArray
         };
 
@@ -49,10 +50,18 @@ public class ChatService
         {
             Content = new StringContent(json, Encoding.UTF8, "application/json")
         };
-        request.Headers.Add("x-api-key", _apiKey);
-        request.Headers.Add("anthropic-version", "2023-06-01");
+        request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", _apiKey);
 
-        var response = await _httpClient.SendAsync(request);
+        HttpResponseMessage response;
+        try
+        {
+            response = await _httpClient.SendAsync(request);
+        }
+        catch (TaskCanceledException ex)
+        {
+            throw new TimeoutException("AI 请求超过 10 分钟仍未返回。请稍后重试，或检查网络和模型响应速度。", ex);
+        }
+
         var responseText = await response.Content.ReadAsStringAsync();
 
         if (!response.IsSuccessStatusCode)

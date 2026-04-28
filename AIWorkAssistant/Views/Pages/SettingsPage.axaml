@@ -14,7 +14,7 @@
                     <TextBlock Text="🤖 AI 服务配置" FontWeight="Bold" FontSize="16"/>
                     <StackPanel Spacing="4">
                         <TextBlock Text="API 地址"/>
-                        <TextBox Text="{Binding ApiBaseUrl}" Watermark="https://..."/>
+                        <TextBox Text="{Binding ApiBaseUrl}" Watermark="https://yxai.chat"/>
                     </StackPanel>
                     <StackPanel Spacing="4">
                         <TextBlock Text="API Key"/>
@@ -22,7 +22,8 @@
                     </StackPanel>
                     <StackPanel Spacing="4">
                         <TextBlock Text="模型名称"/>
-                        <TextBox Text="{Binding Model}" Watermark="模型名称"/>
+                        <TextBox Text="{Binding Model}" Watermark="glm-5.1"/>
+                        <TextBlock Text="接口格式：Claude Messages" Foreground="Gray" FontSize="12"/>
                     </StackPanel>
                 </StackPanel>
             </Border>

@@ -12,7 +12,7 @@ public class BrowserAgent(IPage page, HkOrderSettings settings, Action<string> l
     private const int ScreenshotViewportHeight = 1000;
     private const double ScreenshotZoom = 0.96;
 
-    public async Task LoginAsync(Func<string, string?>? requestCaptchaInput = null)
+    public async Task LoginAsync(Func<string, Task<string?>>? requestCaptchaInput = null)
     {
         log("[Agent] 步骤1：正在登录，等待验证码加载...");
 
@@ -36,7 +36,7 @@ public class BrowserAgent(IPage page, HkOrderSettings settings, Action<string> l
 
             var captchaText = requestCaptchaInput == null
                 ? null
-                : requestCaptchaInput(captchaPath);
+                : await requestCaptchaInput(captchaPath);
 
             if (string.IsNullOrWhiteSpace(captchaText))
             {

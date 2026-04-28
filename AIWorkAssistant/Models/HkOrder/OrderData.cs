@@ -7,6 +7,10 @@ public class OrderData
     public string SaleManager { get; set; } = "";
     public string OrderDate { get; set; } = "";
     public string ContractAmount { get; set; } = "";
+    public string FlexibleNet { get; set; } = "";
+    public string Spec { get; set; } = "";
+    public string BraidedSteelWireRope { get; set; } = "";
+    public string UndergroundTransportMaxLength { get; set; } = "";
     public string Remark { get; set; } = "";
     public List<OrderItem> Items { get; set; } = [];
 }

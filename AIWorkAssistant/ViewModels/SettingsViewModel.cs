@@ -8,6 +8,9 @@ namespace AIWorkAssistant.ViewModels;
 
 public partial class SettingsViewModel : ObservableObject
 {
+    private const string DefaultAiBaseUrl = "https://yxai.chat";
+    private const string DefaultAiModel = "glm-5.1";
+
     // AI 配置
     [ObservableProperty] private string _apiBaseUrl = string.Empty;
     [ObservableProperty] private string _apiKey = string.Empty;
@@ -20,9 +23,9 @@ public partial class SettingsViewModel : ObservableObject
         await using var db = new AppDbContext();
         var settings = await db.AppSettings.ToDictionaryAsync(s => s.Key, s => s.Value);
 
-        ApiBaseUrl = settings.GetValueOrDefault("AiBaseUrl", "https://yxai.chat");
+        ApiBaseUrl = FirstNonEmpty(settings.GetValueOrDefault("AiBaseUrl"), DefaultAiBaseUrl);
         ApiKey = settings.GetValueOrDefault("AiApiKey", "");
-        Model = settings.GetValueOrDefault("AiModel", "glm-5.1");
+        Model = FirstNonEmpty(settings.GetValueOrDefault("AiModel"), DefaultAiModel);
 
     }
 
@@ -49,4 +52,7 @@ public partial class SettingsViewModel : ObservableObject
         else
             db.AppSettings.Add(new AppSetting { Key = key, Value = value ?? "" });
     }
+
+    private static string FirstNonEmpty(params string?[] values)
+        => values.FirstOrDefault(value => !string.IsNullOrWhiteSpace(value)) ?? string.Empty;
 }

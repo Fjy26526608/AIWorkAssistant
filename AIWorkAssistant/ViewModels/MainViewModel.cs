@@ -31,13 +31,20 @@ public partial class MainViewModel : ObservableObject
             DisplayName = user.DisplayName;
             IsAdmin = user.Role == "Admin";
         }
+        else
+        {
+            DisplayName = "本地模式";
+            IsAdmin = true;
+        }
     }
 
     public async Task LoadAssistantsAsync()
     {
         Assistants.Clear();
         await using var db = new AppDbContext();
-        var list = await db.Assistants.Where(a => a.IsEnabled).ToListAsync();
+        var list = await db.Assistants
+            .Where(a => a.IsEnabled && a.Name != "订单自动上传")
+            .ToListAsync();
         foreach (var a in list)
             Assistants.Add(a);
     }

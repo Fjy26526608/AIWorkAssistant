@@ -12,7 +12,8 @@ public partial class MainWindow : Window
     {
         InitializeComponent();
         InitDatabase();
-        ShowLogin();
+        // Login is temporarily bypassed; open the main workspace directly.
+        ShowMain();
     }
 
     private void InitDatabase()
@@ -24,7 +25,15 @@ public partial class MainWindow : Window
 
     private static void SeedDefaultAssistants(AppDbContext db)
     {
-        if (!db.Assistants.Any())
+        var changed = false;
+
+        foreach (var legacyAssistant in db.Assistants.Where(a => a.Name == "订单自动上传"))
+        {
+            legacyAssistant.IsEnabled = false;
+            changed = true;
+        }
+
+        if (!db.Assistants.Any(a => a.Name == "通用办公助手"))
         {
             db.Assistants.Add(new AiAssistant
             {
@@ -34,6 +43,11 @@ public partial class MainWindow : Window
                 SystemPrompt = "你是一个专业、简洁的企业办公 AI 助手。",
                 IsEnabled = true
             });
+            changed = true;
+        }
+
+        if (changed)
+        {
             db.SaveChanges();
         }
     }
@@ -48,7 +62,7 @@ public partial class MainWindow : Window
     private void ShowMain()
     {
         var vm = new MainViewModel();
-        vm.LogoutRequested += ShowLogin;
+        vm.LogoutRequested += ShowMain;
 
         vm.PropertyChanged += (_, e) =>
         {

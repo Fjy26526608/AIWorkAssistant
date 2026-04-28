@@ -83,18 +83,22 @@ public class OrderUploadService(IPage page)
             var lastRow = page.Locator(".el-table__body tbody tr").Last;
             await SelectMaterialForRow(lastRow, item);
             await FillTableSelectCell(lastRow, "是否免费使用", "否");
-            await FillTableCell(lastRow, "幅宽(米)", item.Width);
-            await FillTableCell(lastRow, "数量", ResolveQuantity(item));
             if (IsSectionThreeMainItem(item))
             {
+                await FillTableCell(lastRow, "幅宽(米)", item.Width);
+                await FillTableCell(lastRow, "数量", ResolveQuantity(item));
+                await FillTableCell(lastRow, "税率(%)", item.TaxRate);
+                await FillTableCell(lastRow, "预发货日期", ResolveDeliveryDate(item));
                 await FillTableCell(lastRow, "原币价税合计", ResolveLineAmount(item));
             }
             else
             {
+                await FillTableCell(lastRow, "幅宽(米)", item.Width);
+                await FillTableCell(lastRow, "数量", ResolveQuantity(item));
+                await FillTableCell(lastRow, "税率(%)", item.TaxRate);
+                await FillTableCell(lastRow, "预发货日期", ResolveDeliveryDate(item));
                 await FillTableCell(lastRow, "原币含税单价", ResolveUnitPrice(item));
             }
-            await FillTableCell(lastRow, "税率(%)", item.TaxRate);
-            await FillTableCell(lastRow, "预发货日期", ResolveDeliveryDate(item));
             await page.WaitForTimeoutAsync(500);
         }
 
@@ -116,13 +120,13 @@ public class OrderUploadService(IPage page)
         var formItem = GetFormItem(labelText);
         if (!await WaitForLocatorAsync(formItem))
         {
-            throw new InvalidOperationException(BuildSelectionNotFoundMessage(labelText, optionText));
+            throw new OrderSelectionNotFoundException(BuildSelectionNotFoundMessage(labelText, optionText));
         }
 
         var input = formItem.Locator(".el-select .el-input__inner").First;
         if (!await WaitForLocatorAsync(input))
         {
-            throw new InvalidOperationException($"字段“{labelText}”不是可选择的下拉框。");
+            throw new OrderSelectionNotFoundException($"字段“{labelText}”不是可选择的下拉框。");
         }
 
         await input.ClickAsync();
@@ -137,7 +141,8 @@ public class OrderUploadService(IPage page)
         var option = await FindDropdownOptionAsync(optionText);
         if (option == null)
         {
-            throw new InvalidOperationException(BuildSelectionNotFoundMessage(labelText, optionText));
+            var availableOptions = await GetVisibleDropdownOptionsAsync();
+            throw new OrderSelectionNotFoundException(BuildSelectionNotFoundMessage(labelText, optionText, availableOptions));
         }
 
         await option.ClickAsync();
@@ -153,13 +158,13 @@ public class OrderUploadService(IPage page)
         var formItem = GetFormItem("客户名称");
         if (!await WaitForLocatorAsync(formItem))
         {
-            throw new InvalidOperationException(BuildSelectionNotFoundMessage("客户名称", customerName));
+            throw new OrderSelectionNotFoundException(BuildSelectionNotFoundMessage("客户名称", customerName));
         }
 
         var input = formItem.Locator(".el-input__inner").First;
         if (!await WaitForLocatorAsync(input))
         {
-            throw new InvalidOperationException("字段“客户名称”不是可选择的输入框。");
+            throw new OrderSelectionNotFoundException("字段“客户名称”不是可选择的输入框。");
         }
 
         await input.ClickAsync();
@@ -169,7 +174,8 @@ public class OrderUploadService(IPage page)
         var option = await FindDropdownOptionAsync(customerName);
         if (option == null)
         {
-            throw new InvalidOperationException(BuildSelectionNotFoundMessage("客户名称", customerName));
+            var availableOptions = await GetVisibleDropdownOptionsAsync();
+            throw new OrderSelectionNotFoundException(BuildSelectionNotFoundMessage("客户名称", customerName, availableOptions));
         }
 
         await option.ClickAsync();
@@ -233,7 +239,7 @@ public class OrderUploadService(IPage page)
         var matchedRow = await FindMaterialRowBySpecOnlyWithRetryAsync(dialog, resultTable, item);
         if (matchedRow == null)
         {
-            throw new InvalidOperationException(BuildMaterialNotFoundMessage(item));
+            throw new OrderSelectionNotFoundException(BuildMaterialNotFoundMessage(item));
         }
 
         await matchedRow.Locator("label.el-checkbox").First.ClickAsync();
@@ -484,10 +490,14 @@ public class OrderUploadService(IPage page)
 
     private async Task FillAndVerifyInputAsync(ILocator input, string value, string colHeader)
     {
+        var isPriceColumn = IsPriceColumn(colHeader);
+        var typingDelay = isPriceColumn ? 90 : 30;
+        var settleDelay = isPriceColumn ? 350 : 120;
+
         await input.ClickAsync();
         await input.PressAsync("Control+A");
         await input.FillAsync(string.Empty);
-        await input.PressSequentiallyAsync(value, new() { Delay = 30 });
+        await input.PressSequentiallyAsync(value, new() { Delay = typingDelay });
         await input.EvaluateAsync(
             """
             element => {
@@ -498,11 +508,16 @@ public class OrderUploadService(IPage page)
                 }
             }
             """);
-        await page.WaitForTimeoutAsync(120);
+        await page.WaitForTimeoutAsync(settleDelay);
 
         var actualValue = await input.InputValueAsync();
         if (IsEquivalentInputValue(actualValue, value))
         {
+            if (isPriceColumn)
+            {
+                await CommitCurrentInputAsync(input, settleDelay);
+            }
+
             return;
         }
 
@@ -519,14 +534,39 @@ public class OrderUploadService(IPage page)
             }
             """,
             value);
-        await page.WaitForTimeoutAsync(120);
+        await page.WaitForTimeoutAsync(settleDelay);
 
         actualValue = await input.InputValueAsync();
         if (!IsEquivalentInputValue(actualValue, value))
         {
             throw new InvalidOperationException($"列“{colHeader}”填写失败，目标值“{value}”，实际值“{actualValue}”。");
         }
+
+        if (isPriceColumn)
+        {
+            await CommitCurrentInputAsync(input, settleDelay);
+        }
     }
+
+    private async Task CommitCurrentInputAsync(ILocator input, int delayMs)
+    {
+        await input.EvaluateAsync(
+            """
+            element => {
+                element.dispatchEvent(new Event('change', { bubbles: true }));
+                if (typeof element.blur === "function") {
+                    element.blur();
+                }
+            }
+            """);
+        await page.Keyboard.PressAsync("Escape");
+        await page.WaitForTimeoutAsync(delayMs);
+    }
+
+    private static bool IsPriceColumn(string colHeader) =>
+        colHeader.Contains("价", StringComparison.Ordinal) ||
+        colHeader.Contains("金额", StringComparison.Ordinal) ||
+        colHeader.Contains("合计", StringComparison.Ordinal);
 
     private static bool IsEquivalentInputValue(string? actualValue, string expectedValue)
     {
@@ -561,7 +601,7 @@ public class OrderUploadService(IPage page)
         var input = cell.Locator(".el-select .el-input__inner").First;
         if (!await WaitForLocatorAsync(input))
         {
-            throw new InvalidOperationException($"列“{colHeader}”不是可选择的下拉框。");
+            throw new OrderSelectionNotFoundException($"列“{colHeader}”不是可选择的下拉框。");
         }
 
         await input.ClickAsync();
@@ -569,7 +609,8 @@ public class OrderUploadService(IPage page)
         var option = await FindDropdownOptionAsync(value);
         if (option == null)
         {
-            throw new InvalidOperationException(BuildSelectionNotFoundMessage(colHeader, value));
+            var availableOptions = await GetVisibleDropdownOptionsAsync();
+            throw new OrderSelectionNotFoundException(BuildSelectionNotFoundMessage(colHeader, value, availableOptions));
         }
 
         await option.ClickAsync();
@@ -601,8 +642,48 @@ public class OrderUploadService(IPage page)
         return null;
     }
 
+    private async Task<List<string>> GetVisibleDropdownOptionsAsync()
+    {
+        var optionLocators = page.Locator(
+            ".el-select-dropdown:visible .el-select-dropdown__item:not(.is-disabled) span, " +
+            ".el-autocomplete-suggestion:visible li, " +
+            ".el-cascader__dropdown:visible .el-cascader-node:not(.is-disabled) .el-cascader-node__label");
+        var count = await optionLocators.CountAsync();
+        var options = new List<string>();
+
+        for (var i = 0; i < count; i++)
+        {
+            var text = (await optionLocators.Nth(i).InnerTextAsync()).Trim();
+            if (!string.IsNullOrWhiteSpace(text) &&
+                !options.Contains(text, StringComparer.Ordinal))
+            {
+                options.Add(text);
+            }
+        }
+
+        return options;
+    }
+
     private static string BuildSelectionNotFoundMessage(string fieldName, string targetValue) =>
         $"选择“{fieldName}”时，未找到目标值“{targetValue}”，请检查后重试。";
+
+    private static string BuildSelectionNotFoundMessage(string fieldName, string targetValue, IReadOnlyList<string> availableOptions)
+    {
+        var message = BuildSelectionNotFoundMessage(fieldName, targetValue);
+        if (availableOptions.Count == 0)
+        {
+            return message + " 当前下拉框没有读取到可选内容。";
+        }
+
+        var shownOptions = availableOptions.Take(30).ToList();
+        var suffix = availableOptions.Count > shownOptions.Count
+            ? $"（仅显示前 {shownOptions.Count} 项，共 {availableOptions.Count} 项）"
+            : $"（共 {availableOptions.Count} 项）";
+
+        return message + Environment.NewLine +
+               "当前可选内容" + suffix + "：" + Environment.NewLine +
+               string.Join(Environment.NewLine, shownOptions.Select(option => "  - " + option));
+    }
 
     private static string BuildMaterialNotFoundMessage(OrderItem item)
     {
@@ -639,11 +720,10 @@ public class OrderUploadService(IPage page)
 
     private static bool IsSectionThreeMainItem(OrderItem item)
     {
-        if (string.IsNullOrWhiteSpace(item.Spec) ||
-            string.IsNullOrWhiteSpace(item.Width) ||
-            string.IsNullOrWhiteSpace(item.Length))
+        var remark = item.ItemRemark?.Trim() ?? string.Empty;
+        if (remark.StartsWith("规格", StringComparison.Ordinal))
         {
-            return false;
+            return true;
         }
 
         if (!string.IsNullOrWhiteSpace(item.LengthSegments))
@@ -651,8 +731,7 @@ public class OrderUploadService(IPage page)
             return true;
         }
 
-        var remark = item.ItemRemark?.Trim() ?? string.Empty;
-        return remark.StartsWith("规格", StringComparison.Ordinal);
+        return false;
     }
 
     private static string ResolveQuantity(OrderItem item)
@@ -672,19 +751,33 @@ public class OrderUploadService(IPage page)
 
     private static string ResolveUnitPrice(OrderItem item)
     {
-        if (!string.IsNullOrWhiteSpace(item.UnitPrice))
+        var unitPrice = ParseDecimal(item.UnitPrice);
+        if (unitPrice.HasValue && unitPrice.Value > 0)
         {
-            return item.UnitPrice.Trim();
+            return unitPrice.Value.ToString("0.####", CultureInfo.InvariantCulture);
         }
 
-        return string.IsNullOrWhiteSpace(item.Amount) ? string.Empty : item.Amount.Trim();
+        var amount = ParseDecimal(item.Amount);
+        if (!amount.HasValue || amount.Value <= 0)
+        {
+            return string.Empty;
+        }
+
+        var quantity = ParseDecimal(item.Quantity);
+        if (quantity.HasValue && quantity.Value > 0)
+        {
+            return (amount.Value / quantity.Value).ToString("0.####", CultureInfo.InvariantCulture);
+        }
+
+        return amount.Value.ToString("0.####", CultureInfo.InvariantCulture);
     }
 
     private static string ResolveLineAmount(OrderItem item)
     {
-        if (!string.IsNullOrWhiteSpace(item.Amount))
+        var amount = ParseDecimal(item.Amount);
+        if (amount.HasValue && amount.Value > 0)
         {
-            return item.Amount.Trim();
+            return amount.Value.ToString("0.####", CultureInfo.InvariantCulture);
         }
 
         return string.Empty;
@@ -737,3 +830,5 @@ public class OrderUploadService(IPage page)
         await page.Locator("button.el-button--primary span:text(\"提交\")").ClickAsync();
     }
 }
+
+public sealed class OrderSelectionNotFoundException(string message) : InvalidOperationException(message);
