@@ -21,6 +21,9 @@ public partial class OfficeOrderUploadViewModel : ObservableObject
     [ObservableProperty] private string _apiKey = string.Empty;
     [ObservableProperty] private string _modelName = string.Empty;
     [ObservableProperty] private string _saleType = string.Empty;
+    [ObservableProperty] private string _moneyType = "人民币";
+    [ObservableProperty] private string _rate = "1";
+    [ObservableProperty] private string _marketType = "老市场";
     [ObservableProperty] private string _browserType = "Chromium";
     [ObservableProperty] private bool _headless;
     [ObservableProperty] private int _slowMo;
@@ -58,7 +61,10 @@ public partial class OfficeOrderUploadViewModel : ObservableObject
         ApiBaseUrl = settings.GetValueOrDefault("HkOrder_ApiBaseUrl", settings.GetValueOrDefault("AiBaseUrl", ""));
         ApiKey = settings.GetValueOrDefault("HkOrder_ApiKey", settings.GetValueOrDefault("AiApiKey", ""));
         ModelName = settings.GetValueOrDefault("HkOrder_ModelName", settings.GetValueOrDefault("AiModel", ""));
-        SaleType = settings.GetValueOrDefault("HkOrder_SaleType", "煤矿");
+        SaleType = settings.GetValueOrDefault("HkOrder_SaleType", settings.GetValueOrDefault("DefaultSaleType", "煤矿"));
+        MoneyType = settings.GetValueOrDefault("HkOrder_MoneyType", settings.GetValueOrDefault("DefaultMoneyType", "人民币"));
+        Rate = settings.GetValueOrDefault("HkOrder_Rate", settings.GetValueOrDefault("DefaultRate", "1"));
+        MarketType = settings.GetValueOrDefault("HkOrder_MarketType", settings.GetValueOrDefault("DefaultMarketType", "老市场"));
         BrowserType = settings.GetValueOrDefault("HkOrder_BrowserType", "Chromium");
         Headless = bool.TryParse(settings.GetValueOrDefault("HkOrder_Headless", "false"), out var headless) && headless;
         SlowMo = int.TryParse(settings.GetValueOrDefault("HkOrder_SlowMo", "0"), out var slowMo) ? slowMo : 0;
@@ -236,7 +242,10 @@ public partial class OfficeOrderUploadViewModel : ObservableObject
         ApiKey = ApiKey,
         ApiBaseUrl = ApiBaseUrl,
         ModelName = ModelName,
-        SaleType = SaleType
+        SaleType = SaleType,
+        MoneyType = MoneyType,
+        Rate = Rate,
+        MarketType = MarketType
     };
 
     private async Task SaveSettingsCoreAsync()
@@ -251,6 +260,9 @@ public partial class OfficeOrderUploadViewModel : ObservableObject
         await UpsertSetting(db, "HkOrder_ApiKey", ApiKey);
         await UpsertSetting(db, "HkOrder_ModelName", ModelName);
         await UpsertSetting(db, "HkOrder_SaleType", SaleType);
+        await UpsertSetting(db, "HkOrder_MoneyType", MoneyType);
+        await UpsertSetting(db, "HkOrder_Rate", Rate);
+        await UpsertSetting(db, "HkOrder_MarketType", MarketType);
         await UpsertSetting(db, "HkOrder_BrowserType", BrowserType);
         await UpsertSetting(db, "HkOrder_Headless", Headless.ToString());
         await UpsertSetting(db, "HkOrder_SlowMo", SlowMo.ToString());

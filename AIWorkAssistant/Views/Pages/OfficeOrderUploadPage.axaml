@@ -34,12 +34,17 @@
                             </Grid>
                             <Grid ColumnDefinitions="*,*" ColumnSpacing="8">
                                 <TextBox Grid.Column="0" Text="{Binding SaleType}" Watermark="销售类型，如 煤矿"/>
-                                <TextBox Grid.Column="1" Text="{Binding BrowserType}" Watermark="Chromium/Firefox/WebKit"/>
+                                <TextBox Grid.Column="1" Text="{Binding MoneyType}" Watermark="币种，如 人民币"/>
                             </Grid>
                             <Grid ColumnDefinitions="*,*" ColumnSpacing="8">
-                                <TextBox Grid.Column="0" Text="{Binding SlowMo}" Watermark="浏览器慢动作(ms)"/>
-                                <TextBox Grid.Column="1" Text="{Binding DefaultTimeout}" Watermark="默认超时(ms)"/>
+                                <TextBox Grid.Column="0" Text="{Binding Rate}" Watermark="汇率，如 1"/>
+                                <TextBox Grid.Column="1" Text="{Binding MarketType}" Watermark="新老市场，如 老市场"/>
                             </Grid>
+                            <Grid ColumnDefinitions="*,*" ColumnSpacing="8">
+                                <TextBox Grid.Column="0" Text="{Binding BrowserType}" Watermark="Chromium/Firefox/WebKit"/>
+                                <TextBox Grid.Column="1" Text="{Binding SlowMo}" Watermark="浏览器慢动作(ms)"/>
+                            </Grid>
+                            <TextBox Text="{Binding DefaultTimeout}" Watermark="默认超时(ms)"/>
                             <CheckBox Content="无头模式" IsChecked="{Binding Headless}"/>
                         </StackPanel>
                     </Border>

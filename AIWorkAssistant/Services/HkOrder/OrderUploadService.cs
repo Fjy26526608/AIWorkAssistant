@@ -72,9 +72,9 @@ public class OrderUploadService(IPage page)
         await SelectElOption("产品线", "织布");
         await SearchAndSelectCustomer(order.CustomerName);
         await FillDate("下单日期", order.OrderDate);
-        await SelectElOption("币种", "人民币");
-        await FillInput("汇率", "1");
-        await SelectElOption("新老市场", "老市场");
+        await SelectElOption("币种", settings.MoneyType);
+        await FillInput("汇率", settings.Rate);
+        await SelectElOption("新老市场", settings.MarketType);
         foreach (var item in order.Items)
         {
             await page.Locator("button.el-button--text span:text(\"+ 增加\")").ClickAsync();

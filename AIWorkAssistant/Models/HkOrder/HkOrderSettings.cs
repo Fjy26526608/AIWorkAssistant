@@ -15,4 +15,7 @@ public class HkOrderSettings
     public string ApiBaseUrl { get; set; } = "";
     public string ModelName { get; set; } = "";
     public string SaleType { get; set; } = "煤矿";
+    public string MoneyType { get; set; } = "人民币";
+    public string Rate { get; set; } = "1";
+    public string MarketType { get; set; } = "老市场";
 }

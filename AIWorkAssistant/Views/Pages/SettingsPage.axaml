@@ -27,63 +27,9 @@
                 </StackPanel>
             </Border>
 
-            <!-- 订单系统配置 -->
-            <Border BorderBrush="LightGray" BorderThickness="1" CornerRadius="8" Padding="16">
-                <StackPanel Spacing="12">
-                    <TextBlock Text="🏭 订单管理系统配置" FontWeight="Bold" FontSize="16"/>
-                    <StackPanel Spacing="4">
-                        <TextBlock Text="系统地址"/>
-                        <TextBox Text="{Binding SystemUrl}" Watermark="http://192.168.1.12:8014"/>
-                    </StackPanel>
-                    <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto">
-                        <StackPanel Grid.Column="0" Grid.Row="0" Spacing="4" Margin="0,0,8,8">
-                            <TextBlock Text="登录用户名"/>
-                            <TextBox Text="{Binding SystemUsername}" Watermark="用户名"/>
-                        </StackPanel>
-                        <StackPanel Grid.Column="1" Grid.Row="0" Spacing="4" Margin="0,0,0,8">
-                            <TextBlock Text="登录密码"/>
-                            <TextBox Text="{Binding SystemPassword}" PasswordChar="●" Watermark="密码"/>
-                        </StackPanel>
-                    </Grid>
-                </StackPanel>
-            </Border>
-
-            <!-- 订单默认值配置 -->
-            <Border BorderBrush="LightGray" BorderThickness="1" CornerRadius="8" Padding="16">
-                <StackPanel Spacing="12">
-                    <TextBlock Text="📋 订单默认值" FontWeight="Bold" FontSize="16"/>
-                    <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto,Auto,Auto,Auto">
-                        <StackPanel Grid.Column="0" Grid.Row="0" Spacing="4" Margin="0,0,8,8">
-                            <TextBlock Text="销售类型"/>
-                            <TextBox Text="{Binding DefaultSaleType}" Watermark="煤矿"/>
-                        </StackPanel>
-                        <StackPanel Grid.Column="1" Grid.Row="0" Spacing="4" Margin="0,0,0,8">
-                            <TextBlock Text="销售部门"/>
-                            <TextBox Text="{Binding DefaultDeptName}" Watermark="矿用产品销售部"/>
-                        </StackPanel>
-                        <StackPanel Grid.Column="0" Grid.Row="1" Spacing="4" Margin="0,0,8,8">
-                            <TextBlock Text="销售经理"/>
-                            <TextBox Text="{Binding DefaultSaleManager}" Watermark="销售经理姓名"/>
-                        </StackPanel>
-                        <StackPanel Grid.Column="1" Grid.Row="1" Spacing="4" Margin="0,0,0,8">
-                            <TextBlock Text="币种"/>
-                            <TextBox Text="{Binding DefaultMoneyType}" Watermark="人民币"/>
-                        </StackPanel>
-                        <StackPanel Grid.Column="0" Grid.Row="2" Spacing="4" Margin="0,0,8,8">
-                            <TextBlock Text="汇率"/>
-                            <TextBox Text="{Binding DefaultRate}" Watermark="1"/>
-                        </StackPanel>
-                        <StackPanel Grid.Column="1" Grid.Row="2" Spacing="4" Margin="0,0,0,8">
-                            <TextBlock Text="新老市场"/>
-                            <TextBox Text="{Binding DefaultMarketType}" Watermark="老市场"/>
-                        </StackPanel>
-                    </Grid>
-                </StackPanel>
-            </Border>
-
-            <Button Content="保存所有配置" Command="{Binding SaveAllCommand}"
+            <Button Content="保存 AI 配置" Command="{Binding SaveAllCommand}"
                     HorizontalAlignment="Left" HorizontalContentAlignment="Center"
-                    Width="160"/>
+                    Width="140"/>
 
             <TextBlock Text="{Binding StatusMessage}" Foreground="Green"
                        IsVisible="{Binding StatusMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
