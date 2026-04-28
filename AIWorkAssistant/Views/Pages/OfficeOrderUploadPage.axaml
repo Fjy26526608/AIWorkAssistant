@@ -19,7 +19,7 @@
                     <Border BorderBrush="LightGray" BorderThickness="1" CornerRadius="8" Padding="12">
                         <StackPanel Spacing="8">
                             <TextBlock Text="订单文件" FontWeight="Bold"/>
-                            <TextBox Text="{Binding OrderFolderPath}" Watermark="订单 .doc 文件所在文件夹"/>
+                            <TextBox Text="{Binding OrderFolderPath}" Watermark="订单文件夹（支持 .doc/.docx/.xls/.xlsx）"/>
                         </StackPanel>
                     </Border>
 
@@ -111,7 +111,7 @@
             </Grid>
         </Grid>
 
-        <TextBlock Grid.Row="2" Text="提示：处理过程中会输出 .doc.txt、.ai.raw.json、.ai.cleaned.json、.ai.json，方便核查 AI 解析结果。"
+        <TextBlock Grid.Row="2" Text="提示：支持 .doc/.docx/.xls/.xlsx；处理过程中会输出原文 .txt、.ai.raw.json、.ai.cleaned.json、.ai.json，方便核查 AI 解析结果。"
                    Foreground="Gray" Margin="0,10,0,0"/>
     </Grid>
 </UserControl>

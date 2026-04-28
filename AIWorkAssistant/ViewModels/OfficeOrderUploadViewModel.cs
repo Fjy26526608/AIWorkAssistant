@@ -95,12 +95,10 @@ public partial class OfficeOrderUploadViewModel : ObservableObject
             return;
         }
 
-        var orderFiles = Directory.GetFiles(OrderFolderPath, "*.doc", SearchOption.TopDirectoryOnly)
-            .OrderBy(f => f)
-            .ToArray();
+        var orderFiles = OrderFileReaderService.GetOrderFiles(OrderFolderPath);
         if (orderFiles.Length == 0)
         {
-            AddLog("所选文件夹中没有找到 .doc 订单文件", true);
+            AddLog("所选文件夹中没有找到 .doc/.docx/.xls/.xlsx 订单文件", true);
             return;
         }
 

@@ -44,8 +44,8 @@ public sealed class HkOrderWorkflowService : IAsyncDisposable
             progress?.Report((percent, $"解析 {i + 1}/{orderFiles.Count}"));
 
             _log($"[{i + 1}/{orderFiles.Count}] 读取：{fileName}");
-            var docText = await Task.Run(() => DocReaderService.ReadText(file), ct);
-            var docTextPath = Path.ChangeExtension(file, ".doc.txt");
+            var docText = await Task.Run(() => OrderFileReaderService.ReadText(file), ct);
+            var docTextPath = file + ".txt";
             await File.WriteAllTextAsync(docTextPath, docText, ct);
 
             _log($"  文档长度：{docText.Length} 字符");
