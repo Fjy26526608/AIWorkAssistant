@@ -51,7 +51,7 @@
                                 <ItemsControl.ItemTemplate>
                                     <DataTemplate>
                                         <Button HorizontalAlignment="Stretch" Margin="0,2"
-                                                Command="{Binding $parent[ItemsControl].((vm:MainViewModel)DataContext).SelectAssistantCommand}"
+                                                Command="{Binding $parent[ItemsControl].DataContext.SelectAssistantCommand}"
                                                 CommandParameter="{Binding}">
                                             <StackPanel Orientation="Horizontal" Spacing="8">
                                                 <TextBlock Text="{Binding Icon}" FontSize="20"/>
