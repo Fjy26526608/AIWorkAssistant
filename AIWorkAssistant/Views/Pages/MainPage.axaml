@@ -30,22 +30,6 @@
                 <ScrollViewer>
                     <StackPanel Spacing="12">
                         <StackPanel Spacing="4">
-                            <TextBlock Text="办公功能" FontSize="12" FontWeight="Bold" Foreground="Gray"/>
-                            <Button HorizontalAlignment="Stretch" Margin="0,2"
-                                    Command="{Binding GoToOfficeOrderUploadCommand}">
-                                <StackPanel Orientation="Horizontal" Spacing="8">
-                                    <TextBlock Text="📋" FontSize="20"/>
-                                    <StackPanel>
-                                        <TextBlock Text="订单自动上传" FontWeight="SemiBold"/>
-                                        <TextBlock Text="解析订单并上传到管理系统" FontSize="11"
-                                                   Foreground="Gray" MaxWidth="140"
-                                                   TextTrimming="CharacterEllipsis"/>
-                                    </StackPanel>
-                                </StackPanel>
-                            </Button>
-                        </StackPanel>
-
-                        <StackPanel Spacing="4">
                             <TextBlock Text="AI 助手" FontSize="12" FontWeight="Bold" Foreground="Gray"/>
                             <ItemsControl ItemsSource="{Binding Assistants}">
                                 <ItemsControl.ItemTemplate>
