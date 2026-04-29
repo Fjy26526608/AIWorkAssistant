@@ -86,6 +86,9 @@ public class AiService(string apiKey, string baseUrl, string model)
         - ContractAmount 优先提取“合同金额”。
         - 举例：“柔性网尺寸”中的“柔性网”是物品名称，不是尺寸字段。物品名称可能是多种多样的
         - 第3部分每一行“规格：...”都必须输出为一条 ItemName="xxx" 的明细。
+        - 合同金额下面如果出现“规格：xxx 单价 n；规格：yyy 单价 m”，这些是第3部分主物品不同规格的单价。
+        - 第3部分同一行里出现“规格：xxx 宽 a 米 然后规格：yyy 宽 b 米”时，必须拆成多条主物品明细。
+        - 第3部分“混编：...”以及“携带网卷”“携带钢丝绳”是要求说明，不是物品明细。
         - FlexibleNet 提取“柔性网尺寸”整句或柔性网相关描述，例如“柔性网尺寸：长度256米”。
         - Spec 汇总“规格：...”行里的规格型号；多个规格用中文分号分隔。
         - BraidedSteelWireRope 提取“整编钢丝绳：...”行，不要提取“整编钢丝绳要求”。
@@ -97,6 +100,7 @@ public class AiService(string apiKey, string baseUrl, string model)
         - “整编钢丝绳：...”是物品；“整编钢丝绳要求：...”不是物品。
         - “携带网卷”“携带钢丝绳”等说明行不是物品。
         - 第3部分主物品按总价理解，金额写 Amount，不要把金额误当成单价乘数量。
+        - 第3部分主物品若有宽度、长度和单价，则 Amount=宽度*长度*单价；没有单价且只有一个主物品缺少金额时，Amount 留空由程序用合同总金额反推。
         - 原文明写“金额”的物品，Amount 必须使用原文金额；只有 Quantity 和 UnitPrice 的物品，Amount 按 Quantity * UnitPrice 计算；整张订单只会有一个物品缺少金额。
         - 数量为 0 的物品不要输出。
         - 不知道就填空字符串。
@@ -212,6 +216,8 @@ public class AiService(string apiKey, string baseUrl, string model)
         builder.AppendLine("5. ItemName 必须保持订单原文中的叫法，不要自己改名，不要固定写成“柔性网”。");
         builder.AppendLine("6. 原文明写“金额”的物品，金额放 Amount，不要放 UnitPrice；表格里只有数量和单价时，Amount 按 Quantity * UnitPrice 计算。");
         builder.AppendLine("7. 如果只有一个物品缺少金额，它的 Amount 留空，由程序用订单总金额减去其它所有物品金额反推。");
+        builder.AppendLine("8. 合同金额下面的“规格：xxx 单价 n”是第3部分主物品单价；第3部分“规格 xxx 宽 a 然后规格 yyy 宽 b”要拆成多条，金额=宽度*长度*单价。");
+        builder.AppendLine("9. “混编：...”只作为要求说明，不解析成物品。");
         builder.AppendLine();
 
         if (!string.IsNullOrWhiteSpace(structuredDraft))
@@ -249,8 +255,10 @@ public class AiService(string apiKey, string baseUrl, string model)
         AppendDraftField(builder, "销售部门", lines.Select(line => ExtractAfterLabel(line, "销售部门")).FirstOrDefault(v => !string.IsNullOrWhiteSpace(v)));
 
         var sectionThreeLines = ExtractSectionLines(docText, "3");
+        var sectionThreeSpecPrices = ExtractSectionSpecUnitPrices(lines);
         var mainItemName = FindSectionThreeMainItemName(sectionThreeLines);
         var mainItemLine = sectionThreeLines.FirstOrDefault(line => !string.IsNullOrWhiteSpace(TryExtractSectionThreeMainItemName(line)));
+        var mainItemLength = ExtractSectionThreeMainLength(sectionThreeLines);
         if (!string.IsNullOrWhiteSpace(mainItemName))
         {
             builder.AppendLine();
@@ -261,14 +269,14 @@ public class AiService(string apiKey, string baseUrl, string model)
                 builder.AppendLine($"主产品描述：{StripLeadingSerial(mainItemLine)}");
             }
 
-            var totalLength = ExtractNumberWithUnit(mainItemLine ?? string.Empty, @"长度\s*(?<value>\d+(?:\.\d+)?)\s*(?<unit>m|米)?");
+            var totalLength = string.IsNullOrWhiteSpace(mainItemLength)
+                ? ExtractNumberWithUnit(mainItemLine ?? string.Empty, @"(?:长|长度)\s*(?<value>\d+(?:\.\d+)?)\s*(?<unit>m|米)?")
+                : mainItemLength + "米";
             AppendDraftField(builder, "总长度", totalLength);
         }
 
         var mainItems = sectionThreeLines
-            .Select(line => TryParseSectionThreeSpecLine(line, mainItemName))
-            .Where(item => item != null)
-            .Cast<OrderItem>()
+            .SelectMany(line => ParseSectionThreeSpecItems(line, mainItemName, mainItemLength, sectionThreeSpecPrices))
             .ToList();
 
         if (mainItems.Count > 0)
@@ -428,37 +436,147 @@ public class AiService(string apiKey, string baseUrl, string model)
         return cleaned;
     }
 
-    private static OrderItem? TryParseSectionThreeSpecLine(string line, string itemName)
+    private static List<OrderItem> ParseSectionThreeSpecItems(
+        string line,
+        string itemName,
+        string sectionLength,
+        IReadOnlyDictionary<string, string> specUnitPrices)
     {
         var content = StripLeadingSerial(line);
         if (!Regex.IsMatch(content, @"^规格\s*[：:]"))
         {
-            return null;
+            return [];
         }
 
-        var specText = ExtractAfterLabel(content, "规格");
-        if (string.IsNullOrWhiteSpace(specText))
+        var items = new List<OrderItem>();
+        foreach (Match match in Regex.Matches(
+                     content,
+                     @"规格\s*[：:]\s*(?<spec>.+?)(?:\s+宽\s*(?<width>\d+(?:\.\d+)?)\s*(?:m|米)?)?(?=\s*(?:然后)?规格\s*[：:]|金额\s*[：:]|$)",
+                     RegexOptions.IgnoreCase))
         {
-            return null;
+            var spec = Regex.Replace(match.Groups["spec"].Value, @"\s+", " ").Trim(' ', '，', ',', ';', '；');
+            if (string.IsNullOrWhiteSpace(spec))
+            {
+                continue;
+            }
+
+            var width = match.Groups["width"].Success ? match.Groups["width"].Value.Trim() : string.Empty;
+            var unitPrice = ResolveSpecUnitPrice(spec, specUnitPrices);
+            var amount = ExtractNumber(content, @"金额\s*[：:]\s*(?<value>\d+(?:\.\d+)?)");
+            var widthValue = ParseDecimal(width);
+            var lengthValue = ParseDecimal(sectionLength);
+            var unitPriceValue = ParseDecimal(unitPrice);
+            if (widthValue.HasValue && lengthValue.HasValue && unitPriceValue.HasValue)
+            {
+                amount = (widthValue.Value * lengthValue.Value * unitPriceValue.Value).ToString("0.####", CultureInfo.InvariantCulture);
+            }
+
+            items.Add(new OrderItem
+            {
+                ItemName = itemName,
+                Spec = spec,
+                Width = width,
+                Length = sectionLength,
+                LengthSegments = ExtractNumber(content, @"长度分\s*(?<value>\d+(?:\.\d+)?)\s*段"),
+                UnitPrice = unitPrice,
+                Amount = amount,
+                ItemRemark = match.Value.Trim()
+            });
         }
 
-        var amount = ExtractValue(specText, @"金额\s*[：:]\s*(?<value>\S+)");
-        var width = ExtractNumber(specText, @"宽\s*(?<value>\d+(?:\.\d+)?)\s*(?:m|米)?");
-        var segments = ExtractNumber(specText, @"长度分\s*(?<value>\d+(?:\.\d+)?)\s*段");
-        var spec = Regex.Replace(specText, @"宽\s*\d+(?:\.\d+)?\s*(?:m|米)?", string.Empty);
-        spec = Regex.Replace(spec, @"长度分\s*\d+(?:\.\d+)?\s*段", string.Empty);
-        spec = Regex.Replace(spec, @"金额\s*[：:].*$", string.Empty);
-        spec = Regex.Replace(spec, @"\s+", " ").Trim();
+        return items;
+    }
 
-        return new OrderItem
+    private static OrderItem? TryParseSectionThreeSpecLine(string line, string itemName)
+    {
+        return ParseSectionThreeSpecItems(line, itemName, string.Empty, new Dictionary<string, string>())
+            .FirstOrDefault();
+    }
+
+    private static Dictionary<string, string> ExtractSectionSpecUnitPrices(IEnumerable<string> lines)
+    {
+        var prices = new Dictionary<string, string>(StringComparer.Ordinal);
+        foreach (var line in lines)
         {
-            ItemName = itemName,
-            Spec = spec,
-            Width = width,
-            LengthSegments = segments,
-            Amount = amount,
-            ItemRemark = content
-        };
+            foreach (Match match in Regex.Matches(
+                         line,
+                         @"规格\s*[：:]\s*(?<spec>.+?)\s+单价\s*(?<price>\d+(?:\.\d+)?)",
+                         RegexOptions.IgnoreCase))
+            {
+                var key = NormalizeSpecKey(match.Groups["spec"].Value);
+                if (!string.IsNullOrWhiteSpace(key))
+                {
+                    prices[key] = match.Groups["price"].Value.Trim();
+                }
+            }
+        }
+
+        return prices;
+    }
+
+    private static string ResolveSpecUnitPrice(string spec, IReadOnlyDictionary<string, string> specUnitPrices)
+    {
+        if (specUnitPrices.Count == 0)
+        {
+            return string.Empty;
+        }
+
+        var key = NormalizeSpecKey(spec);
+        if (string.IsNullOrWhiteSpace(key))
+        {
+            return string.Empty;
+        }
+
+        if (specUnitPrices.TryGetValue(key, out var exactPrice))
+        {
+            return exactPrice;
+        }
+
+        foreach (var pair in specUnitPrices)
+        {
+            if (key.Contains(pair.Key, StringComparison.Ordinal) ||
+                pair.Key.Contains(key, StringComparison.Ordinal))
+            {
+                return pair.Value;
+            }
+        }
+
+        return string.Empty;
+    }
+
+    private static string NormalizeSpecKey(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return string.Empty;
+        }
+
+        var normalized = value.ToUpperInvariant()
+            .Replace("Ｍ", "M", StringComparison.Ordinal)
+            .Replace("—", "-", StringComparison.Ordinal)
+            .Replace("－", "-", StringComparison.Ordinal);
+        return Regex.Replace(normalized, @"[\s:：;；,，、。]+", string.Empty);
+    }
+
+    private static string ExtractSectionThreeMainLength(IEnumerable<string> sectionThreeLines)
+    {
+        foreach (var line in sectionThreeLines)
+        {
+            if (!line.Contains("尺寸", StringComparison.Ordinal) &&
+                !line.Contains("长", StringComparison.Ordinal) &&
+                !line.Contains("长度", StringComparison.Ordinal))
+            {
+                continue;
+            }
+
+            var length = ExtractNumber(line, @"(?:长|长度)\s*(?<value>\d+(?:\.\d+)?)\s*(?:m|米)?");
+            if (!string.IsNullOrWhiteSpace(length))
+            {
+                return length;
+            }
+        }
+
+        return string.Empty;
     }
 
     private static OrderItem? TryParseFlexibleNetSpecLine(string line) =>
@@ -692,11 +810,11 @@ public class AiService(string apiKey, string baseUrl, string model)
         var items = new List<OrderItem>();
         var allLines = GetNormalizedNonEmptyLines(docText);
         var sectionThreeLines = ExtractSectionLines(docText, "3");
+        var sectionThreeSpecPrices = ExtractSectionSpecUnitPrices(allLines);
         var sectionThreeMainItemName = FindSectionThreeMainItemName(sectionThreeLines);
+        var sectionThreeLength = ExtractSectionThreeMainLength(sectionThreeLines);
         var sectionThreeItems = sectionThreeLines
-            .Select(line => TryParseSectionThreeSpecLine(line, sectionThreeMainItemName))
-            .Where(item => item != null)
-            .Cast<OrderItem>()
+            .SelectMany(line => ParseSectionThreeSpecItems(line, sectionThreeMainItemName, sectionThreeLength, sectionThreeSpecPrices))
             .Select(NormalizeItem)
             .ToList();
         items.AddRange(sectionThreeItems);
@@ -753,7 +871,7 @@ public class AiService(string apiKey, string baseUrl, string model)
                 if (!string.IsNullOrWhiteSpace(detectedItemName))
                 {
                     currentItemName = detectedItemName;
-                    currentLength = ExtractNumber(contentLine, @"长度\s*(?<value>\d+(?:\.\d+)?)\s*米");
+                    currentLength = ExtractNumber(contentLine, @"(?:长|长度)\s*(?<value>\d+(?:\.\d+)?)\s*(?:m|米)?");
                     continue;
                 }
             }
@@ -1203,6 +1321,11 @@ public class AiService(string apiKey, string baseUrl, string model)
 
     private static OrderItem? TryParseSpecItem(string line, string currentItemName, string currentLength)
     {
+        if (line.Contains("然后规格", StringComparison.Ordinal))
+        {
+            return null;
+        }
+
         if (!Regex.IsMatch(line, @"^规格\s*[：:]"))
         {
             return null;
