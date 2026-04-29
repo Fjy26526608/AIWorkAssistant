@@ -1,0 +1,183 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:AIWorkAssistant.ViewModels"
+             xmlns:ctrl="using:AIWorkAssistant.Views.Controls"
+             x:Class="AIWorkAssistant.Views.Pages.MiningOrderParserPage"
+             x:DataType="vm:MiningOrderParserViewModel">
+
+    <UserControl.Resources>
+        <ctrl:PathToBitmapConverter x:Key="PathToBitmapConverter"/>
+    </UserControl.Resources>
+
+    <Grid RowDefinitions="Auto,*" Margin="16" RowSpacing="12">
+        <TextBlock Grid.Row="0" Text="订单解析 Agent" FontSize="22" FontWeight="Bold"/>
+
+        <Grid Grid.Row="1" ColumnDefinitions="420,*" ColumnSpacing="16">
+            <ScrollViewer Grid.Column="0">
+                <StackPanel Spacing="12">
+                    <Border BorderBrush="LightGray" BorderThickness="1" CornerRadius="8" Padding="12">
+                        <StackPanel Spacing="8">
+                            <TextBlock Text="订单文件" FontWeight="Bold"/>
+                            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                                <TextBox Grid.Column="0"
+                                         Text="{Binding FilePath}"
+                                         Watermark="选择 .doc/.docx/.txt 订单文件"/>
+                                <Button Grid.Column="1"
+                                        Content="选择文件"
+                                        Click="BrowseFileButton_Click"/>
+                            </Grid>
+                        </StackPanel>
+                    </Border>
+
+                    <Border BorderBrush="LightGray" BorderThickness="1" CornerRadius="8" Padding="12">
+                        <StackPanel Spacing="8">
+                            <TextBlock Text="AI 兜底配置" FontWeight="Bold"/>
+                            <CheckBox Content="开启 AI 兜底/审查（推荐）" IsChecked="{Binding UseAi}"/>
+                            <TextBox Text="{Binding ModelName}" Watermark="模型，如 glm-5.1"/>
+                            <TextBox Text="{Binding ApiFormat}" Watermark="API 格式：claude_messages / openai_chat"/>
+                            <TextBox Text="{Binding ApiBaseUrl}" Watermark="Base URL，如 https://yxai.chat/v1"/>
+                            <TextBox Text="{Binding ApiKey}" PasswordChar="●" Watermark="API Key，可留空使用环境变量"/>
+                            <TextBlock Text="默认使用 glm-5.1 + Claude Messages。不会把 Key 写入代码。"
+                                       Foreground="Gray" TextWrapping="Wrap"/>
+                        </StackPanel>
+                    </Border>
+
+                    <Border BorderBrush="LightGray" BorderThickness="1" CornerRadius="8" Padding="12">
+                        <StackPanel Spacing="8">
+                            <TextBlock Text="订单系统上传配置" FontWeight="Bold"/>
+                            <TextBox Text="{Binding TargetUrl}" Watermark="登录网址"/>
+                            <TextBox Text="{Binding OrderPageUrl}" Watermark="新增订单页面地址"/>
+                            <Grid ColumnDefinitions="*,*" ColumnSpacing="8">
+                                <TextBox Grid.Column="0" Text="{Binding Username}" Watermark="账号"/>
+                                <TextBox Grid.Column="1" Text="{Binding Password}" PasswordChar="●" Watermark="密码"/>
+                            </Grid>
+                            <Grid ColumnDefinitions="*,*" ColumnSpacing="8">
+                                <TextBox Grid.Column="0" Text="{Binding SaleType}" Watermark="销售类型，如 煤矿"/>
+                                <TextBox Grid.Column="1" Text="{Binding MoneyType}" Watermark="币种，如 人民币"/>
+                            </Grid>
+                            <Grid ColumnDefinitions="*,*" ColumnSpacing="8">
+                                <TextBox Grid.Column="0" Text="{Binding Rate}" Watermark="汇率，如 1"/>
+                                <TextBox Grid.Column="1" Text="{Binding MarketType}" Watermark="新老市场，如 老市场"/>
+                            </Grid>
+                        </StackPanel>
+                    </Border>
+
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <Button Content="解析订单"
+                                Command="{Binding ParseCommand}"
+                                IsEnabled="{Binding !IsBusy}"
+                                Width="100"
+                                Classes="accent"/>
+                        <Button Content="解析并上传"
+                                Command="{Binding UploadCommand}"
+                                IsEnabled="{Binding !IsBusy}"
+                                Width="110"/>
+                        <Button Content="保存 JSON"
+                                Command="{Binding SaveResultCommand}"
+                                Width="100"/>
+                    </StackPanel>
+
+                    <ProgressBar IsIndeterminate="{Binding IsBusy}" IsVisible="{Binding IsBusy}"/>
+                    <TextBlock Text="{Binding StatusMessage}" TextWrapping="Wrap"/>
+                </StackPanel>
+            </ScrollViewer>
+
+            <Grid Grid.Column="1" RowDefinitions="*,*,*" RowSpacing="10">
+                <Border Grid.Row="0" BorderBrush="LightGray" BorderThickness="1" CornerRadius="8" Padding="8">
+                    <DockPanel>
+                        <TextBlock DockPanel.Dock="Top" Text="解析结果 JSON" FontWeight="Bold" Margin="0,0,0,6"/>
+                        <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
+                            <TextBox Text="{Binding ResultJson}"
+                                     IsReadOnly="True"
+                                     AcceptsReturn="True"
+                                     TextWrapping="NoWrap"
+                                     FontFamily="Consolas"
+                                     BorderThickness="0"/>
+                        </ScrollViewer>
+                    </DockPanel>
+                </Border>
+
+                <Border Grid.Row="1" BorderBrush="LightGray" BorderThickness="1" CornerRadius="8" Padding="8">
+                    <DockPanel>
+                        <TextBlock DockPanel.Dock="Top" Text="上传用 OrderData JSON" FontWeight="Bold" Margin="0,0,0,6"/>
+                        <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
+                            <TextBox Text="{Binding UploadJson}"
+                                     IsReadOnly="True"
+                                     AcceptsReturn="True"
+                                     TextWrapping="NoWrap"
+                                     FontFamily="Consolas"
+                                     BorderThickness="0"/>
+                        </ScrollViewer>
+                    </DockPanel>
+                </Border>
+
+                <Border Grid.Row="2" BorderBrush="LightGray" BorderThickness="1" CornerRadius="8" Padding="8">
+                    <DockPanel>
+                        <TextBlock DockPanel.Dock="Top" Text="上传日志" FontWeight="Bold" Margin="0,0,0,6"/>
+                        <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
+                            <TextBox Text="{Binding LogText}"
+                                     IsReadOnly="True"
+                                     AcceptsReturn="True"
+                                     TextWrapping="Wrap"
+                                     FontFamily="Consolas"
+                                     BorderThickness="0"/>
+                        </ScrollViewer>
+                    </DockPanel>
+                </Border>
+            </Grid>
+        </Grid>
+
+        <Border Grid.RowSpan="2"
+                Background="#99000000"
+                IsVisible="{Binding IsCaptchaVisible}">
+            <Border Width="420"
+                    HorizontalAlignment="Center"
+                    VerticalAlignment="Center"
+                    Background="White"
+                    BorderBrush="#F59E0B"
+                    BorderThickness="2"
+                    CornerRadius="8"
+                    Padding="18">
+                <StackPanel Spacing="12">
+                    <TextBlock Text="请输入验证码" FontSize="18" FontWeight="Bold" Foreground="#B45309"/>
+                    <Image Source="{Binding CaptchaImagePath, Converter={StaticResource PathToBitmapConverter}}"
+                           Width="180" Height="60" Stretch="Uniform" HorizontalAlignment="Center"/>
+                    <TextBox Text="{Binding CaptchaInput}" Watermark="验证码" FontSize="18" HorizontalContentAlignment="Center">
+                        <TextBox.KeyBindings>
+                            <KeyBinding Gesture="Enter" Command="{Binding SubmitCaptchaCommand}"/>
+                        </TextBox.KeyBindings>
+                    </TextBox>
+                    <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Right">
+                        <Button Content="取消" Command="{Binding CancelCaptchaCommand}" Width="80"/>
+                        <Button Content="确认" Command="{Binding SubmitCaptchaCommand}" Width="80" Classes="accent"/>
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+        </Border>
+
+        <Border Grid.RowSpan="2"
+                Background="#99000000"
+                IsVisible="{Binding IsConfirmVisible}">
+            <Border Width="980"
+                    MaxHeight="820"
+                    HorizontalAlignment="Center"
+                    VerticalAlignment="Center"
+                    Background="White"
+                    BorderBrush="#3B82F6"
+                    BorderThickness="2"
+                    CornerRadius="8"
+                    Padding="18">
+                <Grid RowDefinitions="Auto,*,Auto" RowSpacing="12">
+                    <TextBlock Grid.Row="0" Text="请检查订单预览，确认后提交" FontSize="18" FontWeight="Bold"/>
+                    <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto">
+                        <Image Source="{Binding PreviewImagePath, Converter={StaticResource PathToBitmapConverter}}" Stretch="Uniform"/>
+                    </ScrollViewer>
+                    <StackPanel Grid.Row="2" Orientation="Horizontal" Spacing="8" HorizontalAlignment="Right">
+                        <Button Content="跳过" Command="{Binding SkipSubmitCommand}" Width="90"/>
+                        <Button Content="提交" Command="{Binding ConfirmSubmitCommand}" Width="90" Classes="accent"/>
+                    </StackPanel>
+                </Grid>
+            </Border>
+        </Border>
+    </Grid>
+</UserControl>

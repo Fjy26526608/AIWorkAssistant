@@ -125,6 +125,13 @@ public partial class MainViewModel : ObservableObject
     }
 
     [RelayCommand]
+    private void GoToMiningOrderParser()
+    {
+        SelectedAssistant = null;
+        CurrentPage = "MiningOrderParser";
+    }
+
+    [RelayCommand]
     private void Logout()
     {
         ServiceLocator.Auth.Logout();

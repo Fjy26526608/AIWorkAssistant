@@ -29,6 +29,19 @@
                 <ScrollViewer>
                     <StackPanel Spacing="8">
                         <Button HorizontalAlignment="Stretch" Margin="0,2"
+                                Command="{Binding GoToMiningOrderParserCommand}">
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                <TextBlock Text="🧾" FontSize="20"/>
+                                <StackPanel>
+                                    <TextBlock Text="订单解析 Agent" FontWeight="SemiBold"/>
+                                    <TextBlock Text="选择 Word 订单并输出结构化 JSON" FontSize="11"
+                                               Foreground="Gray" MaxWidth="140"
+                                               TextTrimming="CharacterEllipsis"/>
+                                </StackPanel>
+                            </StackPanel>
+                        </Button>
+
+                        <Button HorizontalAlignment="Stretch" Margin="0,2"
                                 Command="{Binding GoToOfficeOrderUploadCommand}">
                             <StackPanel Orientation="Horizontal" Spacing="8">
                                 <TextBlock Text="📋" FontSize="20"/>

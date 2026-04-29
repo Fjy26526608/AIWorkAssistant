@@ -72,11 +72,33 @@ public partial class MainWindow : Window
                     ShowSettings(vm);
                 else if (vm.CurrentPage == "OfficeOrderUpload")
                     ShowOfficeOrderUpload(vm);
+                else if (vm.CurrentPage == "MiningOrderParser")
+                    ShowMiningOrderParser(vm);
             }
         };
 
         PageHost.Content = new MainPage { DataContext = vm };
         _ = vm.LoadAssistantsAsync();
+    }
+
+    private void ShowMiningOrderParser(MainViewModel mainVm)
+    {
+        var vm = new MiningOrderParserViewModel();
+        var page = new MiningOrderParserPage { DataContext = vm };
+
+        var container = new DockPanel();
+        var backBtn = new Button { Content = "← 返回主页", Margin = new Avalonia.Thickness(12, 8) };
+        backBtn.Click += (_, _) =>
+        {
+            mainVm.CurrentPage = "AssistantList";
+            ShowMain();
+        };
+        DockPanel.SetDock(backBtn, Avalonia.Controls.Dock.Top);
+        container.Children.Add(backBtn);
+        container.Children.Add(page);
+
+        PageHost.Content = container;
+        _ = vm.LoadAsync();
     }
 
     private void ShowOfficeOrderUpload(MainViewModel mainVm)
